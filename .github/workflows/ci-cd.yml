@@ -1,3 +1,4 @@
+```yaml
 name: CI/CD
 
 on:
@@ -34,7 +35,6 @@ jobs:
     name: Build and push Docker image
     needs: test
 
-    # Only push images when code is actually pushed to main.
     if: github.event_name == 'push'
 
     runs-on: ubuntu-latest
@@ -59,3 +59,35 @@ jobs:
           context: .
           push: true
           tags: justin148/todo-ci-cd:latest
+
+
+  deploy:
+    name: Deploy to Debian server
+    needs: docker
+
+    if: github.event_name == 'push'
+
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Pull latest Docker image
+        run: docker pull justin148/todo-ci-cd:latest
+
+      - name: Stop old container
+        run: docker stop todo-app || true
+
+      - name: Remove old container
+        run: docker rm todo-app || true
+
+      - name: Start new container
+        run: |
+          docker run -d \
+            --name todo-app \
+            --restart unless-stopped \
+            -p 5000:5000 \
+            justin148/todo-ci-cd:latest
+
+      - name: Verify container
+        run: docker ps
+```
